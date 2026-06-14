@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bisync"
+version = "0.1.0"
+description = "Android app for bidirectional file sync via rclone"
+requires-python = ">=3.12"
+dependencies = [
+    "kivy>=2.3",
+]
+
+[tool.setuptools]
+py-modules = []
