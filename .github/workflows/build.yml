@@ -61,7 +61,7 @@ jobs:
         run: |
           mkdir -p "$HOME/.buildozer"
           sudo chown -R 1000:1000 "$HOME/.buildozer" .
-          echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > bisync.keystore
+          echo '${{ secrets.SIGNING_KEYSTORE_BASE64 }}' | base64 -d > bisync.keystore
           docker run --rm \
             --volume "$PWD":/home/builder/hostcwd \
             --volume "$HOME/.buildozer":/home/builder/.buildozer \
