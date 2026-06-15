@@ -78,17 +78,15 @@ jobs:
             bisync-buildozer android release
 
       - name: Fix permissions
-        run: sudo chown -R $(id -u):$(id -g) ./bin
+        run: sudo chown -R $(id -u):$(id -g) ./bin ./assets
 
       - name: Rename APK with version
         id: rename
         run: |
-          APK=$(ls ./bin/*.apk ./bin/*.aab 2>/dev/null | head -1)
+          APK=$(ls ./bin/*.apk | head -1)
           VERSION="${GITHUB_REF_NAME:-dev}"
-          EXT="${APK##*.}"
-          NEW_NAME="bisync-${VERSION}.${EXT}"
-          cp "$APK" "./bin/$NEW_NAME"
-          echo "apk_path=./bin/$NEW_NAME" >> "$GITHUB_OUTPUT"
+          cp "$APK" "./bin/bisync-${VERSION}.apk"
+          echo "apk_path=./bin/bisync-${VERSION}.apk" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
