@@ -30,9 +30,6 @@ jobs:
           RCLONE_VERSION: v1.69.1
         run: |
           mkdir -p assets
-          # The prebuilt linux-arm64 rclone is pure-Go (CGO_ENABLED=0) and its
-          # DNS resolver reads /etc/resolv.conf, which does not exist on Android.
-          # Build for GOOS=android with CGO so it uses Android's Bionic resolver.
           NDK="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}"
           CC="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
           git clone --depth 1 --branch "$RCLONE_VERSION" https://github.com/rclone/rclone.git /tmp/rclone-src
@@ -40,6 +37,7 @@ jobs:
           GOOS=android GOARCH=arm64 CGO_ENABLED=1 CC="$CC" \
             go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/assets/librclone.so" .
           file "$GITHUB_WORKSPACE/assets/librclone.so"
+          ls -lh "$GITHUB_WORKSPACE/assets/librclone.so"
 
       - name: Cache buildozer global
         uses: actions/cache@v4
@@ -89,20 +87,24 @@ jobs:
             -e P4A_RELEASE_KEYSTORE_PASSWD="$KEYSTORE_PASSWORD" \
             -e P4A_RELEASE_KEYALIAS="$KEY_ALIAS" \
             -e P4A_RELEASE_KEYALIAS_PASSWD="$KEY_PASSWORD" \
-            bisync-buildozer android release
+            bisync-buildozer android release 2>&1 | tee /tmp/buildozer.log
 
-      - name: Show real gradle error on failure
+      - name: Extract full gradle error on failure
         if: failure()
         run: |
-          sudo chown -R $(id -u):$(id -g) . || true
+          echo "=== Full buildozer log (last 300 lines) ==="
+          tail -300 /tmp/buildozer.log
+
+          echo ""
+          echo "=== Attempting direct gradle build with --stacktrace for real error ==="
+          sudo chown -R $(id -u):$(id -g) . .buildozer 2>/dev/null || true
           DIST=$(ls -d .buildozer/android/platform/build-arm64-v8a/dists/* 2>/dev/null | head -1)
-          echo "DIST=$DIST"
           if [ -n "$DIST" ]; then
-            docker run --rm \
-              --volume "$PWD":/home/builder/hostcwd \
-              --volume "$HOME/.buildozer":/home/builder/.buildozer \
-              -w "/home/builder/hostcwd/$DIST" \
-              bisync-buildozer ./gradlew assembleRelease --stacktrace --info 2>&1 | tail -120 || true
+            echo "DIST=$DIST"
+            cd "$DIST"
+            ./gradlew assembleRelease --stacktrace 2>&1 | tail -200
+          else
+            echo "No dist directory found"
           fi
 
       - name: Fix permissions
