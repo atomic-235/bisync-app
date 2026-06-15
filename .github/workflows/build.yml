@@ -64,12 +64,13 @@ jobs:
           KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > $RUNNER_TEMP/bisync.keystore
           mkdir -p "$HOME/.buildozer"
           sudo chown -R 1000:1000 "$HOME/.buildozer" .
-          echo "$KEYSTORE_BASE64" | base64 --decode > bisync.keystore
           docker run --rm \
             --volume "$PWD":/home/builder/hostcwd \
             --volume "$HOME/.buildozer":/home/builder/.buildozer \
+            --volume "$RUNNER_TEMP/bisync.keystore":/home/builder/hostcwd/bisync.keystore:ro \
             -e P4A_RELEASE_KEYSTORE=/home/builder/hostcwd/bisync.keystore \
             -e P4A_RELEASE_KEYSTORE_PASSWD="$KEYSTORE_PASSWORD" \
             -e P4A_RELEASE_KEYALIAS="$KEY_ALIAS" \
