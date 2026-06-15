@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 from dataclasses import dataclass, field
@@ -107,7 +108,22 @@ def _run_cmd(cmd: list[str], on_log=None) -> SyncResult:
     return parse_output(stdout, "", proc.returncode)
 
 
+def _clean_lock_files(pair: SyncPair) -> None:
+    from config import _app_dir
+    cache_dir = _app_dir() / "cache"
+    if not cache_dir.exists():
+        return
+    for f in cache_dir.glob("*.lock"):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+
+
 def run_sync(pair: SyncPair, force_resync: bool = False, on_log=None) -> SyncResult:
+    _clean_lock_files(pair)
+    local = resolve_local_path(pair)
+    os.makedirs(local, exist_ok=True)
     needs_resync = force_resync or not listing_cache_exists(pair)
     cmd = _build_cmd(pair, resync=needs_resync)
 
@@ -120,8 +136,10 @@ def run_sync(pair: SyncPair, force_resync: bool = False, on_log=None) -> SyncRes
         )
 
     if not needs_resync and not result.success:
-        if "cannot find prior listing" in (result.raw_stderr + result.raw_stdout):
-            cmd2 = _build_cmd(pair, resync=True)
+        output = result.raw_stderr + result.raw_stdout
+        if "cannot find prior listing" in output or "prior lock" in output:
+            _clean_lock_files(pair)
+            cmd2 = _build_cmd(pair, resync="cannot find prior listing" in output)
             try:
                 result = _run_cmd(cmd2, on_log=on_log)
             except FileNotFoundError:
