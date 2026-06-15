@@ -22,11 +22,24 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .buildozer
-          key: buildozer-project-${{ runner.os }}-${{ github.run_id }}
+          key: buildozer-project-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
           restore-keys: buildozer-project-${{ runner.os }}-
 
-      - name: Build Docker image
-        run: docker build -t bisync-buildozer .
+      - name: Cache Docker image
+        uses: actions/cache@v4
+        with:
+          path: /tmp/docker-image
+          key: docker-${{ runner.os }}-${{ hashFiles('Dockerfile') }}
+
+      - name: Load or build Docker image
+        run: |
+          if [ -f /tmp/docker-image/bisync-buildozer.tar ]; then
+            docker load -i /tmp/docker-image/bisync-buildozer.tar
+          else
+            docker build -t bisync-buildozer .
+            mkdir -p /tmp/docker-image
+            docker save bisync-buildozer -o /tmp/docker-image/bisync-buildozer.tar
+          fi
 
       - name: Build APK
         run: |
