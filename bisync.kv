@@ -1,0 +1,426 @@
+#:kivy 2.3.0
+
+<HomeScreen>:
+    name: "home"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(8)
+        spacing: dp(4)
+
+        Label:
+            text: "Bisync"
+            font_size: sp(24)
+            bold: True
+            size_hint_y: None
+            height: dp(48)
+
+        ScrollView:
+            BoxLayout:
+                id: pairs_list
+                orientation: "vertical"
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: dp(4)
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(48)
+            spacing: dp(4)
+
+            Button:
+                text: "+ Add Sync Pair"
+                on_release: app.edit_pair(None)
+
+            Button:
+                text: "Settings"
+                on_release: root.manager.current = "settings"
+
+
+<SyncPairCard>:
+    orientation: "vertical"
+    size_hint_y: None
+    height: dp(110)
+    padding: dp(8)
+    spacing: dp(2)
+
+    canvas.before:
+        Color:
+            rgba: 0.15, 0.15, 0.18, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    Label:
+        text: f"{root.pair_name}  {root.pair_status}"
+        font_size: sp(16)
+        bold: True
+        size_hint_y: None
+        height: dp(24)
+        halign: "left"
+        text_size: self.size
+
+    Label:
+        text: root.pair_local
+        font_size: sp(12)
+        size_hint_y: None
+        height: dp(18)
+        halign: "left"
+        text_size: self.size
+        color: 0.6, 0.6, 0.6, 1
+
+    Label:
+        text: f"↔ {root.pair_remote}"
+        font_size: sp(12)
+        size_hint_y: None
+        height: dp(18)
+        halign: "left"
+        text_size: self.size
+        color: 0.6, 0.6, 0.6, 1
+
+    BoxLayout:
+        size_hint_y: None
+        height: dp(32)
+        spacing: dp(4)
+
+        Button:
+            text: "Sync"
+            on_release: root.do_sync()
+
+        Button:
+            text: "Resync"
+            on_release: root.do_resync()
+
+        Button:
+            text: "Status"
+            on_release: root.do_status()
+
+        Button:
+            text: "Edit"
+            on_release: root.do_edit()
+
+        Button:
+            text: "Delete"
+            on_release: root.do_delete()
+
+
+<DetailScreen>:
+    name: "detail"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(8)
+        spacing: dp(4)
+
+        Label:
+            text: root.pair.name if root.pair else ""
+            font_size: sp(20)
+            bold: True
+            size_hint_y: None
+            height: dp(40)
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(4)
+
+            Button:
+                text: "Sync"
+                on_release: root.do_sync()
+
+            Button:
+                text: "Resync"
+                on_release: root.do_resync()
+
+            Button:
+                text: "Back"
+                on_release: root.manager.current = "home"
+
+        ScrollView:
+            Label:
+                text: root.status_text
+                font_size: sp(13)
+                halign: "left"
+                valign: "top"
+                text_size: self.width - dp(16), None
+                size_hint_y: None
+                height: self.texture_size[1] if self.texture_size[1] else dp(100)
+
+
+<EditScreen>:
+    name: "edit"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(8)
+        spacing: dp(4)
+
+        Label:
+            text: "New Sync Pair" if root.is_new else "Edit Sync Pair"
+            font_size: sp(20)
+            bold: True
+            size_hint_y: None
+            height: dp(36)
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            Label:
+                text: "Template:"
+                size_hint_x: None
+                width: dp(80)
+            Spinner:
+                id: template_spinner
+                text: "Custom"
+                values: ["KeePass", "Custom"]
+                size_hint_x: 0.6
+                on_text: root.apply_template(self.text)
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            Label:
+                text: "Name:"
+                size_hint_x: None
+                width: dp(80)
+            TextInput:
+                text: root.pair_name
+                on_text: root.pair_name = self.text
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            Label:
+                text: "Local:"
+                size_hint_x: None
+                width: dp(80)
+            TextInput:
+                text: root.local_path
+                on_text: root.local_path = self.text
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            Label:
+                text: "Remote:"
+                size_hint_x: None
+                width: dp(80)
+            TextInput:
+                text: root.remote_path
+                on_text: root.remote_path = self.text
+
+        Label:
+            text: "Filters (one per line, e.g. '+ *.kdbx'):"
+            size_hint_y: None
+            height: dp(20)
+            font_size: sp(12)
+
+        TextInput:
+            id: filters_input
+            text: root.filters_text
+            on_text: root.filters_text = self.text
+            size_hint_y: None
+            height: dp(80)
+            multiline: True
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            Label:
+                text: "Conflict:"
+                size_hint_x: None
+                width: dp(80)
+            Spinner:
+                id: conflict_spinner
+                text: root.conflict_resolve
+                values: ["newer", "larger", "none"]
+                on_text: root.conflict_resolve = self.text
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            Label:
+                text: "Lock:"
+                size_hint_x: None
+                width: dp(80)
+            TextInput:
+                text: root.lock_timeout
+                on_text: root.lock_timeout = self.text
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(40)
+            spacing: dp(4)
+
+            Button:
+                text: "Save"
+                on_release: root.save()
+
+            Button:
+                text: "Cancel"
+                on_release: app.go_home()
+
+
+<SettingsScreen>:
+    name: "settings"
+    BoxLayout:
+        orientation: "vertical"
+        padding: dp(8)
+        spacing: dp(4)
+
+        Label:
+            text: "Settings"
+            font_size: sp(20)
+            bold: True
+            size_hint_y: None
+            height: dp(40)
+
+        Label:
+            text: "rclone Config"
+            font_size: sp(16)
+            bold: True
+            size_hint_y: None
+            height: dp(28)
+
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            spacing: dp(4)
+
+            Button:
+                text: "Import from Clipboard"
+                on_release: root.import_clipboard()
+
+            Button:
+                text: "Import Text"
+                on_release: root.import_text()
+
+        Label:
+            text: root.remotes_text
+            font_size: sp(14)
+            bold: True
+            size_hint_y: None
+            height: dp(28)
+            halign: "left"
+            text_size: self.size
+
+        Label:
+            text: root.config_masked if root.config_masked else "(no config)"
+            font_size: sp(11)
+            halign: "left"
+            valign: "top"
+            text_size: self.width - dp(16), None
+            size_hint_y: None
+            height: dp(120)
+            color: 0.7, 0.7, 0.7, 1
+
+        Label:
+            id: about_label
+            text: ""
+            font_size: sp(12)
+            size_hint_y: None
+            height: dp(40)
+            halign: "left"
+            text_size: self.size
+            color: 0.6, 0.6, 0.6, 1
+
+        Widget:
+
+        Button:
+            text: "Back"
+            size_hint_y: None
+            height: dp(40)
+            on_release: root.manager.current = "home"
+
+
+<ConfirmPopup>:
+    orientation: "vertical"
+    padding: dp(16)
+    spacing: dp(8)
+
+    Label:
+        text: root.message
+
+    BoxLayout:
+        size_hint_y: None
+        height: dp(36)
+        spacing: dp(8)
+
+        Button:
+            text: "Confirm"
+            on_release: root.confirm()
+
+        Button:
+            text: "Cancel"
+            on_release: root.cancel()
+
+
+<ConfigInputPopup>:
+    orientation: "vertical"
+    padding: dp(8)
+    spacing: dp(4)
+
+    TextInput:
+        id: config_input
+        multiline: True
+        hint_text: "Paste rclone config here..."
+
+    BoxLayout:
+        size_hint_y: None
+        height: dp(36)
+        spacing: dp(8)
+
+        Button:
+            text: "Save"
+            on_release: root.save()
+
+        Button:
+            text: "Cancel"
+            on_release: root.cancel()
+
+
+<SyncLogPopup>:
+    orientation: "vertical"
+    padding: dp(8)
+    spacing: dp(4)
+
+    ScrollView:
+        Label:
+            text: root.log_text
+            font_size: sp(11)
+            halign: "left"
+            valign: "top"
+            text_size: self.width - dp(16), None
+            size_hint_y: None
+            height: max(self.texture_size[1], dp(50))
+
+    Button:
+        text: "Close"
+        size_hint_y: None
+        height: dp(36)
+        on_release: root.dismiss()
+
+
+<ResultPopup>:
+    orientation: "vertical"
+    padding: dp(8)
+    spacing: dp(4)
+
+    ScrollView:
+        Label:
+            text: root.result_text
+            font_size: sp(12)
+            halign: "left"
+            valign: "top"
+            text_size: self.width - dp(16), None
+            size_hint_y: None
+            height: self.texture_size[1] if self.texture_size[1] else dp(50)
+
+    Button:
+        text: "Copy"
+        size_hint_y: None
+        height: dp(36)
+        on_release: root.copy_to_clipboard()
+
+    Button:
+        text: "OK"
+        size_hint_y: None
+        height: dp(36)
+        on_release: root.dismiss()

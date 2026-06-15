@@ -36,17 +36,22 @@
         ]);
 
       venv = pythonSet.mkVirtualEnv "bisync-env" workspace.deps.default;
+
+      kivy-env = pkgs.python312.withPackages (ps: [ ps.kivy ]);
     in
     {
       devShells.${system}.default = pkgs.mkShell {
-        packages = [ venv pkgs.uv pkgs.rclone ];
+        packages = [ venv kivy-env pkgs.uv pkgs.rclone ];
         env = {
           UV_NO_SYNC             = "1";
           UV_PYTHON              = "${venv}/bin/python";
           UV_PYTHON_DOWNLOADS    = "never";
           UV_PROJECT_ENVIRONMENT = "${venv}";
         };
-        shellHook = ''unset PYTHONPATH'';
+        shellHook = ''
+          unset PYTHONPATH
+          export PYTHONPATH="${kivy-env}/${kivy-env.sitePackages}''${PYTHONPATH:+:$PYTHONPATH}"
+        '';
       };
     };
 }
