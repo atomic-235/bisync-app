@@ -6,7 +6,8 @@ package.domain = dev.kraftnix
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 source.include_patterns = assets/*
-version = 0.1
+version.regex = __version__ = ['"](.*)['"]
+version.filename = %(source.dir)s/main.py
 
 requirements = python3,kivy==2.3.1,filetype
 
