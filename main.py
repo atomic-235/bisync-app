@@ -16,7 +16,7 @@ from kivy.uix.screenmanager import Screen, ScreenManager
 from config import has_config, read_config_masked, write_config, get_remotes, rclone_path
 from models import TEMPLATES, SyncFilter, SyncPair
 from store import add_pair, delete_pair, get_pair, load_pairs, save_pairs, update_pair
-from sync import SyncResult, get_status, run_sync
+from sync import SyncResult, get_status, run_sync, test_remote
 
 
 class BisyncScreenManager(ScreenManager):
@@ -387,6 +387,26 @@ class BisyncApp(App):
     def show_status(self, pair: SyncPair):
         self.show_detail(pair)
 
+    def test_remote_connection(self, remote_path: str):
+        log_popup = SyncLogPopup()
+        popup = Popup(title=f"Testing: {remote_path}", content=log_popup, size_hint=(0.9, 0.7), auto_dismiss=False)
+        log_popup.popup = popup
+        popup.open()
+
+        def on_log(line):
+            Clock.schedule_once(lambda dt: setattr(log_popup, "log_text", log_popup.log_text + line + "\n"))
+
+        def worker():
+            success, output = test_remote(remote_path, on_log=on_log)
+            Clock.schedule_once(lambda dt: self._on_test_done(popup, success, output))
+
+        Thread(target=worker, daemon=True).start()
+
+    def _on_test_done(self, popup, success, output):
+        popup.dismiss()
+        result = SyncResult(success=success, raw_stdout=output)
+        self.show_result(None, result)
+
     def show_result(self, pair: SyncPair, result: SyncResult):
         lines = []
         if result.success:
@@ -417,7 +437,7 @@ class BisyncApp(App):
         if log_err:
             lines.append(f"\n--- stderr ---\n{log_err[:2000]}")
 
-        if result.success and pair:
+        if result.success and pair is not None:
             update_pair(pair)
 
         content = ResultPopup(result_text="\n".join(lines))

@@ -110,10 +110,10 @@ def _run_cmd(cmd: list[str], on_log=None) -> SyncResult:
 
 def _clean_lock_files(pair: SyncPair) -> None:
     from config import _app_dir
-    cache_dir = _app_dir() / "cache"
-    if not cache_dir.exists():
+    lock_dir = _app_dir() / "tmp" / "rclone" / "bisync"
+    if not lock_dir.exists():
         return
-    for f in cache_dir.glob("*.lock"):
+    for f in lock_dir.glob("*.lck"):
         try:
             os.remove(f)
         except OSError:
@@ -189,6 +189,35 @@ def _list_local(pair: SyncPair) -> list[dict]:
             st = os.stat(full)
             files.append({"name": name, "size": st.st_size})
     return files
+
+
+def test_remote(remote_path: str, on_log=None) -> tuple[bool, str]:
+    cmd = [
+        str(rclone_path()),
+        "lsf",
+        remote_path,
+        "--config", str(config_path()),
+        "--verbose",
+    ]
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            env=get_rclone_env(),
+        )
+    except FileNotFoundError:
+        return False, "rclone binary not found"
+
+    lines = []
+    for line in proc.stdout:
+        line = line.rstrip()
+        lines.append(line)
+        if on_log:
+            on_log(line)
+    proc.wait()
+    return proc.returncode == 0, "\n".join(lines)
 
 
 def _list_remote(pair: SyncPair) -> list[dict]:

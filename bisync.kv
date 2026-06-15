@@ -321,6 +321,22 @@
             text_size: self.size
             color: 0.6, 0.6, 0.6, 1
 
+        BoxLayout:
+            size_hint_y: None
+            height: dp(36)
+            spacing: dp(4)
+
+            TextInput:
+                id: test_remote_path
+                hint_text: "remote:path to test (e.g. yandex:keepass-bucket/)"
+                multiline: False
+
+            Button:
+                text: "Test"
+                size_hint_x: None
+                width: dp(80)
+                on_release: app.test_remote_connection(root.ids.test_remote_path.text)
+
         Widget:
 
         Button:
