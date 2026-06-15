@@ -25,6 +25,7 @@ android.accept_sdk_license = True
 p4a.branch = v2026.05.09
 
 android.add_libs_arm64_v8a = assets/librclone.so
+android.release_artifact = apk
 
 [buildozer]
 log_level = 2

@@ -83,9 +83,10 @@ jobs:
       - name: Rename APK with version
         id: rename
         run: |
-          APK=$(ls ./bin/*.apk | head -1)
+          APK=$(ls ./bin/*.apk ./bin/*.aab 2>/dev/null | head -1)
           VERSION="${GITHUB_REF_NAME:-dev}"
-          NEW_NAME="bisync-${VERSION}.apk"
+          EXT="${APK##*.}"
+          NEW_NAME="bisync-${VERSION}.${EXT}"
           cp "$APK" "./bin/$NEW_NAME"
           echo "apk_path=./bin/$NEW_NAME" >> "$GITHUB_OUTPUT"
 
