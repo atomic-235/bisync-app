@@ -1,13 +1,17 @@
 FROM python:3.11-bookworm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git zip unzip openjdk-17-jdk-headless \
-    autoconf automake libtool pkg-config \
-    libffi-dev libssl-dev libltdl-dev \
-    sudo patch gnumake gcc cmake \
+    git zip unzip sudo \
+    openjdk-17-jdk \
+    python3-pip python3-setuptools python3-dev \
+    patch autoconf automake build-essential \
+    libtool pkg-config gettext \
+    zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 \
+    cmake libffi-dev libltdl-dev libssl-dev \
+    && apt-get remove -y ccache \
     && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m builder && echo "builder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN useradd -m -U builder && echo "builder ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 USER builder
 WORKDIR /home/builder/hostcwd
 
