@@ -321,9 +321,7 @@ class BisyncApp(App):
         try:
             from android.permissions import request_permissions, Permission
             request_permissions([
-                Permission.READ_EXTERNAL_STORAGE,
-                Permission.WRITE_EXTERNAL_STORAGE,
-                Permission.INTERNET,
+                Permission.MANAGE_EXTERNAL_STORAGE,
             ])
         except ImportError:
             pass

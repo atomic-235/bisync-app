@@ -13,7 +13,7 @@ requirements = python3,kivy==2.3.1,filetype
 orientation = portrait
 fullscreen = 0
 
-android.permissions = INTERNET,FOREGROUND_SERVICE,POST_NOTIFICATIONS,(name=android.permission.READ_EXTERNAL_STORAGE;maxSdkVersion=32),(name=android.permission.WRITE_EXTERNAL_STORAGE;maxSdkVersion=28)
+android.permissions = INTERNET,FOREGROUND_SERVICE,POST_NOTIFICATIONS,MANAGE_EXTERNAL_STORAGE
 android.archs = arm64-v8a
 android.allow_backup = False
 android.api = 33
@@ -23,7 +23,7 @@ android.accept_sdk_license = True
 
 p4a.branch = v2026.05.09
 
-android.add_libs = assets/librclone.so:lib/arm64-v8a/librclone.so
+android.add_libs_arm64_v8a = assets/librclone.so
 
 [buildozer]
 log_level = 2

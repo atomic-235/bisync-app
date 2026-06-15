@@ -14,6 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Download rclone binary
+        run: |
+          curl -L https://downloads.rclone.org/rclone-current-linux-arm64.zip -o /tmp/rclone.zip
+          cd /tmp && unzip -o rclone.zip
+          cp /tmp/rclone-*-linux-arm64/rclone ./assets/librclone.so
+
       - name: Cache buildozer global
         uses: actions/cache@v4
         with:
@@ -52,6 +58,7 @@ jobs:
             --volume "$PWD":/home/builder/hostcwd \
             --volume "$HOME/.buildozer":/home/builder/.buildozer \
             bisync-buildozer android debug
+          sudo chown -R 1000:1000 ./bin
 
       - name: Rename APK with version
         id: rename
