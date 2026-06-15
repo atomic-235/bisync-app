@@ -4,6 +4,8 @@ import os
 
 from threading import Thread
 
+__version__ = "0.1.0"
+
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.properties import BooleanProperty, ListProperty, ObjectProperty, StringProperty
@@ -312,7 +314,19 @@ class BisyncApp(App):
         self.sm = BisyncScreenManager()
         self.sm.add_widget(HomeScreen(name="home"))
         self.sm.add_widget(SettingsScreen(name="settings"))
+        self._request_permissions()
         return self.sm
+
+    def _request_permissions(self):
+        try:
+            from android.permissions import request_permissions, Permission
+            request_permissions([
+                Permission.READ_EXTERNAL_STORAGE,
+                Permission.WRITE_EXTERNAL_STORAGE,
+                Permission.INTERNET,
+            ])
+        except ImportError:
+            pass
 
     def go_home(self):
         if self.sm.current != "home":
