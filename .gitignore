@@ -2,4 +2,8 @@
 /result
 /sync/
 /__pycache__/
+/.buildozer/
+/bin/
+/assets/librclone.so
+/assets/rclone-arm64
 /.direnv

@@ -43,6 +43,17 @@ def config_path() -> Path:
 
 
 def rclone_path() -> Path:
+    if is_android():
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass("org.kivy.android.PythonActivity")
+            app_info = PythonActivity.mActivity.getApplicationInfo()
+            native_lib_dir = app_info.nativeLibraryDir
+            so_path = Path(native_lib_dir) / "librclone.so"
+            if so_path.exists():
+                return so_path
+        except Exception:
+            pass
     bundled = _app_dir() / "rclone"
     if bundled.exists():
         return bundled
