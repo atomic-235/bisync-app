@@ -6,5 +6,6 @@
 /bin/
 /assets/librclone.so
 /assets/rclone-arm64
+/bisync.keystore
 /.direnv
 /assets/librclone.so
