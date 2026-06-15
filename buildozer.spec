@@ -8,7 +8,7 @@ source.include_exts = py,png,jpg,kv,atlas
 source.include_patterns = assets/*
 version = 0.1
 
-requirements = python3==3.12,kivy==2.3.0,filetype
+requirements = hostpython3==3.12.8,python3==3.12.8,kivy==2.3.0,filetype
 
 orientation = portrait
 fullscreen = 0
