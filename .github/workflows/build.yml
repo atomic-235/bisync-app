@@ -59,7 +59,9 @@ jobs:
             --volume "$PWD":/home/builder/hostcwd \
             --volume "$HOME/.buildozer":/home/builder/.buildozer \
             bisync-buildozer android debug
-          sudo chown -R 1000:1000 ./bin
+
+      - name: Fix permissions
+        run: sudo chown -R $(id -u):$(id -g) ./bin
 
       - name: Rename APK with version
         id: rename
