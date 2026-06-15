@@ -31,7 +31,7 @@ jobs:
       - name: Build APK
         run: |
           mkdir -p "$HOME/.buildozer"
-          sudo chown 1000:1000 "$HOME/.buildozer"
+          sudo chown -R 1000:1000 "$HOME/.buildozer" .
           docker run --rm \
             --volume "$PWD":/home/builder/hostcwd \
             --volume "$HOME/.buildozer":/home/builder/.buildozer \
