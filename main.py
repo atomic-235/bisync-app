@@ -320,10 +320,25 @@ class BisyncApp(App):
     def _request_permissions(self):
         try:
             from android.permissions import request_permissions, Permission
-            request_permissions([
-                Permission.MANAGE_EXTERNAL_STORAGE,
-            ])
+            request_permissions([Permission.POST_NOTIFICATIONS])
         except ImportError:
+            pass
+
+        try:
+            from jnius import autoclass
+            Build_VERSION = autoclass("android.os.Build$VERSION")
+            if Build_VERSION.SDK_INT >= 30:
+                Environment = autoclass("android.os.Environment")
+                if not Environment.isExternalStorageManager():
+                    PythonActivity = autoclass("org.kivy.android.PythonActivity")
+                    Intent = autoclass("android.content.Intent")
+                    Settings = autoclass("android.provider.Settings")
+                    Uri = autoclass("android.net.Uri")
+                    mActivity = PythonActivity.mActivity
+                    intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    intent.setData(Uri.parse(f"package:{mActivity.getPackageName()}"))
+                    mActivity.startActivity(intent)
+        except Exception:
             pass
 
     def go_home(self):
