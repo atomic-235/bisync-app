@@ -58,17 +58,22 @@ jobs:
           fi
 
       - name: Build APK
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
           mkdir -p "$HOME/.buildozer"
           sudo chown -R 1000:1000 "$HOME/.buildozer" .
-          echo '${{ secrets.SIGNING_KEYSTORE_BASE64 }}' | base64 -d > bisync.keystore
+          echo "$KEYSTORE_BASE64" | base64 --decode > bisync.keystore
           docker run --rm \
             --volume "$PWD":/home/builder/hostcwd \
             --volume "$HOME/.buildozer":/home/builder/.buildozer \
             -e P4A_RELEASE_KEYSTORE=/home/builder/hostcwd/bisync.keystore \
-            -e P4A_RELEASE_KEYSTORE_PASSWD=${{ secrets.SIGNING_KEYSTORE_PASSWORD }} \
-            -e P4A_RELEASE_KEYALIAS=${{ secrets.SIGNING_KEY_ALIAS }} \
-            -e P4A_RELEASE_KEYALIAS_PASSWD=${{ secrets.SIGNING_KEY_PASSWORD }} \
+            -e P4A_RELEASE_KEYSTORE_PASSWD="$KEYSTORE_PASSWORD" \
+            -e P4A_RELEASE_KEYALIAS="$KEY_ALIAS" \
+            -e P4A_RELEASE_KEYALIAS_PASSWD="$KEY_PASSWORD" \
             bisync-buildozer android release
 
       - name: Fix permissions
