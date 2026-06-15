@@ -25,11 +25,15 @@ jobs:
           key: buildozer-project-${{ runner.os }}-${{ github.run_id }}
           restore-keys: buildozer-project-${{ runner.os }}-
 
+      - name: Build Docker image
+        run: docker build -t bisync-buildozer .
+
       - name: Build APK
-        uses: ArtemSBulgakov/buildozer-action@v1
-        with:
-          workdir: .
-          buildozer_version: stable
+        run: |
+          docker run --rm \
+            --volume "$PWD":/home/builder/hostcwd \
+            --volume "$HOME/.buildozer":/home/builder/.buildozer \
+            bisync-buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
