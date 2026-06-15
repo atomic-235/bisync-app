@@ -8,7 +8,7 @@ source.include_exts = py,png,jpg,kv,atlas
 source.include_patterns = assets/*
 version = 0.1
 
-requirements = hostpython3==3.12.8,python3==3.12.8,kivy==2.3.0,filetype
+requirements = python3,kivy==2.3.1,filetype
 
 orientation = portrait
 fullscreen = 0
@@ -18,9 +18,10 @@ android.archs = arm64-v8a
 android.allow_backup = False
 android.api = 33
 android.minapi = 24
-android.ndk = 25b
 android.enable_androidx = True
 android.accept_sdk_license = True
+
+p4a.branch = v2026.05.09
 
 android.add_libs = assets/librclone.so:lib/arm64-v8a/librclone.so
 
