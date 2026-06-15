@@ -3,11 +3,14 @@ name: Build APK
 on:
   push:
     branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -50,8 +53,24 @@ jobs:
             --volume "$HOME/.buildozer":/home/builder/.buildozer \
             bisync-buildozer android debug
 
-      - name: Upload APK
+      - name: Rename APK with version
+        id: rename
+        run: |
+          APK=$(ls ./bin/*.apk | head -1)
+          VERSION="${GITHUB_REF_NAME:-dev}"
+          NEW_NAME="bisync-${VERSION}.apk"
+          cp "$APK" "./bin/$NEW_NAME"
+          echo "apk_path=./bin/$NEW_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: bisync-apk
-          path: ./bin/*.apk
+          path: ${{ steps.rename.outputs.apk_path }}
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.rename.outputs.apk_path }}
+          generate_release_notes: true
