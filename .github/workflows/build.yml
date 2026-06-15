@@ -16,9 +16,10 @@ jobs:
 
       - name: Download rclone binary
         run: |
+          mkdir -p assets
           curl -L https://downloads.rclone.org/rclone-current-linux-arm64.zip -o /tmp/rclone.zip
           cd /tmp && unzip -o rclone.zip
-          cp /tmp/rclone-*-linux-arm64/rclone ./assets/librclone.so
+          cp /tmp/rclone-*-linux-arm64/rclone "$GITHUB_WORKSPACE/assets/librclone.so"
 
       - name: Cache buildozer global
         uses: actions/cache@v4
