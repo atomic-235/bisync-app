@@ -5,7 +5,10 @@ package.name = bisync
 package.domain = dev.kraftnix
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
-source.include_patterns = assets/*
+# NOTE: do NOT include assets/* here. librclone.so is injected as a native lib
+# via android.add_libs_arm64_v8a and loaded from nativeLibraryDir at runtime.
+# Including assets/* would package the ~40MB binary a SECOND time into private
+# app data, which blows up :packageRelease (IncrementalSplitterRunnable).
 version.regex = __version__ = ['"](.*)['"]
 version.filename = %(source.dir)s/main.py
 
