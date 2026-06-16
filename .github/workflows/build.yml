@@ -87,25 +87,20 @@ jobs:
             -e P4A_RELEASE_KEYSTORE_PASSWD="$KEYSTORE_PASSWORD" \
             -e P4A_RELEASE_KEYALIAS="$KEY_ALIAS" \
             -e P4A_RELEASE_KEYALIAS_PASSWD="$KEY_PASSWORD" \
+            -e P4A_FULL_DEBUG=1 \
             bisync-buildozer android release 2>&1 | tee /tmp/buildozer.log
 
       - name: Extract full gradle error on failure
         if: failure()
         run: |
-          echo "=== Full buildozer log (last 300 lines) ==="
-          tail -300 /tmp/buildozer.log
-
+          echo "=== Root cause ==="
+          grep -B2 -A5 "Caused by:" /tmp/buildozer.log || echo "No 'Caused by:' found"
           echo ""
-          echo "=== Attempting direct gradle build with --stacktrace for real error ==="
-          sudo chown -R $(id -u):$(id -g) . .buildozer 2>/dev/null || true
-          DIST=$(ls -d .buildozer/android/platform/build-arm64-v8a/dists/* 2>/dev/null | head -1)
-          if [ -n "$DIST" ]; then
-            echo "DIST=$DIST"
-            cd "$DIST"
-            ./gradlew assembleRelease --stacktrace 2>&1 | tail -200
-          else
-            echo "No dist directory found"
-          fi
+          echo "=== Gradle FAILURE ==="
+          grep -A10 "FAILURE:" /tmp/buildozer.log || echo "No 'FAILURE:' found"
+          echo ""
+          echo "=== Last 300 lines ==="
+          tail -300 /tmp/buildozer.log
 
       - name: Fix permissions
         run: sudo chown -R $(id -u):$(id -g) ./bin ./assets

@@ -18,4 +18,7 @@ WORKDIR /home/builder/hostcwd
 ENV PATH="/home/builder/.local/bin:$PATH"
 RUN pip3 install --user --no-cache-dir --upgrade buildozer Cython wheel pip setuptools virtualenv
 
+RUN mkdir -p /home/builder/.gradle && \
+    echo "org.gradle.logging.stacktrace=all" > /home/builder/.gradle/gradle.properties
+
 ENTRYPOINT ["buildozer"]
