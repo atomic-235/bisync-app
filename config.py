@@ -109,12 +109,19 @@ def get_remotes() -> list[str]:
     return remotes
 
 
+def bisync_workdir() -> Path:
+    p = _app_dir() / "bisync-workdir"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
 def listing_cache_exists(pair: SyncPair) -> bool:
-    cache_dir = _app_dir() / "cache"
-    if not cache_dir.exists():
+    listing_dir = bisync_workdir()
+    if not listing_dir.exists():
         return False
-    safe_name = pair.name.replace("/", "_").replace(" ", "_")
-    return any(cache_dir.glob(f"*{safe_name}*.lst"))
+    local = resolve_local_path(pair).replace("/", "_").replace(":", "_")
+    remote = pair.remote_path.replace("/", "_").replace(":", "_")
+    return any(listing_dir.glob(f"{local}..{remote}*.lst"))
 
 
 def get_rclone_env() -> dict[str, str]:

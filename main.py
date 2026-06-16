@@ -16,7 +16,7 @@ from kivy.uix.screenmanager import Screen, ScreenManager
 from config import has_config, read_config_masked, write_config, get_remotes, rclone_path
 from models import TEMPLATES, SyncFilter, SyncPair
 from store import add_pair, delete_pair, get_pair, load_pairs, save_pairs, update_pair
-from sync import SyncResult, get_status, run_sync, test_remote
+from sync import SyncResult, run_sync, run_push, run_pull, test_remote
 
 
 class BisyncScreenManager(ScreenManager):
@@ -56,6 +56,14 @@ class SyncPairCard(BoxLayout):
         app = App.get_running_app()
         app.run_sync_with_log(self.pair)
 
+    def do_push(self):
+        app = App.get_running_app()
+        app.run_push_with_log(self.pair)
+
+    def do_pull(self):
+        app = App.get_running_app()
+        app.run_pull_with_log(self.pair)
+
     def do_resync(self):
         content = ConfirmPopup(
             message="This will reset sync state. Continue?",
@@ -64,10 +72,6 @@ class SyncPairCard(BoxLayout):
         popup = Popup(title="Confirm Resync", content=content, size_hint=(0.8, 0.4))
         content.popup = popup
         popup.open()
-
-    def do_status(self):
-        app = App.get_running_app()
-        app.show_status(self.pair)
 
     def do_edit(self):
         app = App.get_running_app()
@@ -86,54 +90,6 @@ class SyncPairCard(BoxLayout):
         delete_pair(self.pair.id)
         app = App.get_running_app()
         app.go_home()
-
-
-class DetailScreen(Screen):
-    pair = ObjectProperty(None, rebind=True)
-    status_text = StringProperty("")
-
-    def on_enter(self, *_args):
-        if self.pair:
-            self._load_status()
-
-    def _load_status(self):
-        try:
-            status = get_status(self.pair)
-            lines = []
-            lines.append(f"Last sync: {self.pair.last_synced or 'Never'}")
-            lines.append(f"Listing cache: {'OK' if status['listing_ok'] else 'Missing'}")
-            lines.append(f"Config: {'OK' if status['config_ok'] else 'Missing'}")
-            lines.append("")
-            lines.append("Local files:")
-            for f in status["local_files"]:
-                lines.append(f"  {f['name']}  {f['size']}B")
-            lines.append("")
-            lines.append("Remote files:")
-            for f in status["remote_files"]:
-                lines.append(f"  {f['name']}")
-            lines.append("")
-            conflicts = status["conflicts"]
-            lines.append(f"Conflicts: {', '.join(conflicts) if conflicts else 'none'}")
-            self.status_text = "\n".join(lines)
-        except Exception as exc:
-            self.status_text = f"Error loading status: {exc}"
-
-    def do_sync(self):
-        if not self.pair:
-            return
-        app = App.get_running_app()
-        app.run_sync_with_log(self.pair, on_done=self._load_status)
-
-    def do_resync(self):
-        if not self.pair:
-            return
-        content = ConfirmPopup(
-            message="This will reset sync state. Continue?",
-            on_confirm=lambda: App.get_running_app().run_sync_with_log(self.pair, force_resync=True, on_done=self._load_status),
-        )
-        popup = Popup(title="Confirm Resync", content=content, size_hint=(0.8, 0.4))
-        content.popup = popup
-        popup.open()
 
 
 class EditScreen(Screen):
@@ -377,15 +333,35 @@ class BisyncApp(App):
         screen.is_new = pair is None
         self.sm.current = "edit"
 
-    def show_detail(self, pair: SyncPair):
-        if not self.sm.has_screen("detail"):
-            self.sm.add_widget(DetailScreen(name="detail"))
-        screen = self.sm.get_screen("detail")
-        screen.pair = pair
-        self.sm.current = "detail"
+    def run_push_with_log(self, pair: SyncPair):
+        log_popup = SyncLogPopup()
+        popup = Popup(title=f"Push: {pair.name}", content=log_popup, size_hint=(0.9, 0.7), auto_dismiss=False)
+        log_popup.popup = popup
+        popup.open()
 
-    def show_status(self, pair: SyncPair):
-        self.show_detail(pair)
+        def on_log(line):
+            Clock.schedule_once(lambda dt: setattr(log_popup, "log_text", log_popup.log_text + line + "\n"))
+
+        def worker():
+            result = run_push(pair, on_log=on_log)
+            Clock.schedule_once(lambda dt: self._on_sync_done(pair, result, popup, None))
+
+        Thread(target=worker, daemon=True).start()
+
+    def run_pull_with_log(self, pair: SyncPair):
+        log_popup = SyncLogPopup()
+        popup = Popup(title=f"Pull: {pair.name}", content=log_popup, size_hint=(0.9, 0.7), auto_dismiss=False)
+        log_popup.popup = popup
+        popup.open()
+
+        def on_log(line):
+            Clock.schedule_once(lambda dt: setattr(log_popup, "log_text", log_popup.log_text + line + "\n"))
+
+        def worker():
+            result = run_pull(pair, on_log=on_log)
+            Clock.schedule_once(lambda dt: self._on_sync_done(pair, result, popup, None))
+
+        Thread(target=worker, daemon=True).start()
 
     def test_remote_connection(self, remote_path: str):
         log_popup = SyncLogPopup()

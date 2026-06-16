@@ -39,7 +39,7 @@
 <SyncPairCard>:
     orientation: "vertical"
     size_hint_y: None
-    height: dp(110)
+    height: dp(130)
     padding: dp(8)
     spacing: dp(2)
 
@@ -87,62 +87,20 @@
             on_release: root.do_sync()
 
         Button:
+            text: "Push"
+            on_release: root.do_push()
+
+        Button:
+            text: "Pull"
+            on_release: root.do_pull()
+
+        Button:
             text: "Resync"
             on_release: root.do_resync()
 
         Button:
-            text: "Status"
-            on_release: root.do_status()
-
-        Button:
             text: "Edit"
             on_release: root.do_edit()
-
-        Button:
-            text: "Delete"
-            on_release: root.do_delete()
-
-
-<DetailScreen>:
-    name: "detail"
-    BoxLayout:
-        orientation: "vertical"
-        padding: dp(8)
-        spacing: dp(4)
-
-        Label:
-            text: root.pair.name if root.pair else ""
-            font_size: sp(20)
-            bold: True
-            size_hint_y: None
-            height: dp(40)
-
-        BoxLayout:
-            size_hint_y: None
-            height: dp(40)
-            spacing: dp(4)
-
-            Button:
-                text: "Sync"
-                on_release: root.do_sync()
-
-            Button:
-                text: "Resync"
-                on_release: root.do_resync()
-
-            Button:
-                text: "Back"
-                on_release: root.manager.current = "home"
-
-        ScrollView:
-            Label:
-                text: root.status_text
-                font_size: sp(13)
-                halign: "left"
-                valign: "top"
-                text_size: self.width - dp(16), None
-                size_hint_y: None
-                height: self.texture_size[1] if self.texture_size[1] else dp(100)
 
 
 <EditScreen>:

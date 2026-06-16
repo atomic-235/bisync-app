@@ -6,7 +6,7 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from config import config_path, get_rclone_env, rclone_path, listing_cache_exists, resolve_local_path
+from config import config_path, get_rclone_env, rclone_path, resolve_local_path, bisync_workdir
 from models import SyncPair
 
 
@@ -32,6 +32,7 @@ def _build_cmd(pair: SyncPair, resync: bool = False) -> list[str]:
         local,
         pair.remote_path,
         "--config", str(config_path()),
+        "--workdir", str(bisync_workdir()),
     ]
     for f in pair.filters:
         cmd.append(f"--filter={f.direction} {f.pattern}")
@@ -45,6 +46,7 @@ def _build_cmd(pair: SyncPair, resync: bool = False) -> list[str]:
     ])
     if resync:
         cmd.append("--resync")
+        cmd.extend(["--resync-mode", "newer"])
     return cmd
 
 
@@ -109,8 +111,7 @@ def _run_cmd(cmd: list[str], on_log=None) -> SyncResult:
 
 
 def _clean_lock_files(pair: SyncPair) -> None:
-    from config import _app_dir
-    lock_dir = _app_dir() / "tmp" / "rclone" / "bisync"
+    lock_dir = bisync_workdir()
     if not lock_dir.exists():
         return
     for f in lock_dir.glob("*.lck"):
@@ -124,8 +125,7 @@ def run_sync(pair: SyncPair, force_resync: bool = False, on_log=None) -> SyncRes
     _clean_lock_files(pair)
     local = resolve_local_path(pair)
     os.makedirs(local, exist_ok=True)
-    needs_resync = force_resync or not listing_cache_exists(pair)
-    cmd = _build_cmd(pair, resync=needs_resync)
+    cmd = _build_cmd(pair, resync=force_resync)
 
     try:
         result = _run_cmd(cmd, on_log=on_log)
@@ -135,18 +135,13 @@ def run_sync(pair: SyncPair, force_resync: bool = False, on_log=None) -> SyncRes
             errors=["rclone binary not found"],
         )
 
-    if not needs_resync and not result.success:
+    if not force_resync and not result.success:
         output = result.raw_stderr + result.raw_stdout
         if "cannot find prior listing" in output or "prior lock" in output:
-            _clean_lock_files(pair)
-            cmd2 = _build_cmd(pair, resync="cannot find prior listing" in output)
-            try:
-                result = _run_cmd(cmd2, on_log=on_log)
-            except FileNotFoundError:
-                return SyncResult(
-                    success=False,
-                    errors=["rclone binary not found"],
-                )
+            return SyncResult(
+                success=False,
+                errors=["No prior listing found. Run with 'Resync' to re-establish."],
+            )
 
     if result.success:
         pair.last_synced = datetime.now(timezone.utc).isoformat()
@@ -154,41 +149,42 @@ def run_sync(pair: SyncPair, force_resync: bool = False, on_log=None) -> SyncRes
     return result
 
 
-def get_status(pair: SyncPair) -> dict:
-    result: dict = {
-        "local_files": [],
-        "remote_files": [],
-        "conflicts": [],
-        "last_synced": pair.last_synced,
-        "listing_ok": listing_cache_exists(pair),
-        "config_ok": config_path().exists(),
-    }
-
-    local = _list_local(pair)
-    result["local_files"] = local
-
-    remote = _list_remote(pair)
-    result["remote_files"] = remote
-
-    conflicts = _find_conflicts(pair)
-    result["conflicts"] = conflicts
-
-    return result
+def run_push(pair: SyncPair, on_log=None) -> SyncResult:
+    local = resolve_local_path(pair)
+    os.makedirs(local, exist_ok=True)
+    cmd = [
+        str(rclone_path()),
+        "copy",
+        local,
+        pair.remote_path,
+        "--config", str(config_path()),
+    ]
+    for f in pair.filters:
+        cmd.append(f"--filter={f.direction} {f.pattern}")
+    cmd.extend(["--verbose"])
+    try:
+        return _run_cmd(cmd, on_log=on_log)
+    except FileNotFoundError:
+        return SyncResult(success=False, errors=["rclone binary not found"])
 
 
-def _list_local(pair: SyncPair) -> list[dict]:
-    import os
-
-    path = resolve_local_path(pair)
-    if not os.path.isdir(path):
-        return []
-    files = []
-    for name in sorted(os.listdir(path)):
-        full = os.path.join(path, name)
-        if os.path.isfile(full):
-            st = os.stat(full)
-            files.append({"name": name, "size": st.st_size})
-    return files
+def run_pull(pair: SyncPair, on_log=None) -> SyncResult:
+    local = resolve_local_path(pair)
+    os.makedirs(local, exist_ok=True)
+    cmd = [
+        str(rclone_path()),
+        "copy",
+        pair.remote_path,
+        local,
+        "--config", str(config_path()),
+    ]
+    for f in pair.filters:
+        cmd.append(f"--filter={f.direction} {f.pattern}")
+    cmd.extend(["--verbose"])
+    try:
+        return _run_cmd(cmd, on_log=on_log)
+    except FileNotFoundError:
+        return SyncResult(success=False, errors=["rclone binary not found"])
 
 
 def test_remote(remote_path: str, on_log=None) -> tuple[bool, str]:
@@ -218,45 +214,3 @@ def test_remote(remote_path: str, on_log=None) -> tuple[bool, str]:
             on_log(line)
     proc.wait()
     return proc.returncode == 0, "\n".join(lines)
-
-
-def _list_remote(pair: SyncPair) -> list[dict]:
-    cmd = [
-        str(rclone_path()),
-        "lsf",
-        pair.remote_path,
-        "--config", str(config_path()),
-    ]
-    try:
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            env=get_rclone_env(),
-            timeout=30,
-        )
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        return []
-
-    if proc.returncode != 0:
-        return []
-
-    files = []
-    for line in proc.stdout.strip().splitlines():
-        name = line.strip().rstrip(";")
-        if name:
-            files.append({"name": name, "size": -1})
-    return files
-
-
-def _find_conflicts(pair: SyncPair) -> list[str]:
-    import os
-
-    path = resolve_local_path(pair)
-    if not os.path.isdir(path):
-        return []
-    return sorted(
-        f
-        for f in os.listdir(path)
-        if "conflict" in f.lower() and os.path.isfile(os.path.join(path, f))
-    )
